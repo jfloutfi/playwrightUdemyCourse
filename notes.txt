@@ -41,3 +41,62 @@ And check out the following files:
   - ./playwright.config.ts - Playwright Test configuration
 
 Visit https://playwright.dev/docs/intro for more information
+
+For this course:
+----------------
+go to https://rahulshettyacademy.com/practice
+to find practice resources
+
+Await:
+------
+with playwright, we will need to use "await"
+it is a bit closer to how javascript executes than Cypress, and does not have its own DSL schemes and so one,
+so log term, it might be simpler to deal with that cypress, especially when it comes to commands, since in this case, they are just regular functions
+
+when using "await", you need to make sure to designed the function as "async"
+
+Playwright favors:
+
+* Explicit flow
+* No hidden magic
+* Better debugging
+
+Test and fixtures
+-----------------
+test('first playwright test', async ({browser}) => {}
+browser is a fixture that availabe to all playwright tests
+we must wrap it in {} else it will be treated like som regular string variable
+
+test('first playwright test', async ({browser}) => {
+    // chrome - plugings, cookies... etc
+    // newContext => opens a fresh browser instance
+    // we can use this method to inject cookies for example, basically configure the browser as it launches
+    // this can help establish sessions the same it is done in cypress so avoid re-logins
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await page.goto('https://somehost.com');
+});
+
+we can also use ({browser, page}) or just ({page})
+using "page", playwright will create for us default browser, context... etc
+
+playwright.config.ts
+--------------------
+config file, can also be used to overwrite defaults
+For example
+
+export default defineConfig({
+  testDir: './tests',
+  timeout: 40 * 1000, => timeout for every step
+  expect: { => configuration for "expect" object, which is used for assertions
+    timeout: 50 * 1000 => timeout for assertions
+  },
+  use: {
+    browserName: 'chromium',
+    headless: false => always the browser that comes with playwright
+  }
+});
+
+Only and Skip
+-------------
+we can use test.only() and test.skip()
