@@ -1,0 +1,43 @@
+Playwright wait till elements are visible
+Playwright wait till elements are stable => elements can be come visible but might not be fully loaded
+=> before it performs some action on it
+
+for some actions it can wait till some events related to said element complete
+
+all the above can be found in documentation
+
+cross browser compatible
+
+multiplatform as well: win, mac, linux...
+
+multi linguale flexibility: can use, JS/TS, Java, python, C#... etc
+
+Inside that directory, you can run several commands:
+
+  npx playwright test
+    Runs the end-to-end tests.
+
+  npx playwright test --ui
+    Starts the interactive UI mode.
+
+  npx playwright test --project=chromium
+    Runs the tests only on Desktop Chrome.
+
+  npx playwright test example
+    Runs the tests in a specific file.
+
+  npx playwright test --debug
+    Runs the tests in debug mode.
+
+  npx playwright codegen
+    Auto generate tests with Codegen.
+
+We suggest that you begin by typing:
+
+    npx playwright test
+
+And check out the following files:
+  - ./tests/example.spec.ts - Example end-to-end test
+  - ./playwright.config.ts - Playwright Test configuration
+
+Visit https://playwright.dev/docs/intro for more information
