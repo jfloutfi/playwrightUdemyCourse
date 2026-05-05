@@ -87,7 +87,7 @@ For example
 
 export default defineConfig({
   testDir: './tests',
-  timeout: 40 * 1000, => timeout for every step
+  timeout: 40 * 1000, => timeout per step in test
   expect: { => configuration for "expect" object, which is used for assertions
     timeout: 50 * 1000 => timeout for assertions
   },
@@ -100,3 +100,35 @@ export default defineConfig({
 Only and Skip
 -------------
 we can use test.only() and test.skip()
+
+unlike cypress, here we use .locator()
+locator is alwasy scoped to the object before it
+page.locator('parent').locator('child')
+best to use CSS selectors here
+same CSS selector techniques and syntax as cypress like "#" for id, "." for class, also the element type (tag name) can be included, like "button#loginButton"
+
+await page.locator('[style*="block"]').textContent();
+=> extracts text content found in element matched via locator
+
+Consider:
+1- const text:string|null = await page.locator('[style*="block"]').textContent();
+   expect(text).toContain('Incorrect');
+
+2- await expect(page.locator('[style*="block"]')).toContainText('Incorrect');
+
+3- expect(await page.locator('[style*="block"]')).toContainText('Incorrect');
+
+The correct one is "2", bcz toContainText() is the method that returns the promise
+in "1", the value might end up as null and there will be no retries, in this case, these happen on "expect"
+"3" is a bug, locator does not return a promise
+
+text fields:
+best practice to clear a text field in playwright is to use .fill('') though .fill() auto clears before filling data
+in case in the test, you need to append chars to already types one, use pressSequentially()
+
+When dealing with locators that detect multiple elements we have:
+.first()
+.last()
+.nth(x) => x is the index of an array: 0 -> nth
+
+

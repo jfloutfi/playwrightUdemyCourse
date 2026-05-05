@@ -13,7 +13,19 @@ test.only('first playwright test', async ({browser}) => {
     const page = await context.newPage();
     await page.goto('https://rahulshettyacademy.com/loginpagePractise/');
     console.log(await page.title());
-    await expect(page).toHaveTitle('LoginPage Practise | Rahul Shetty Academy!!!');
+    await expect(page).toHaveTitle('LoginPage Practise | Rahul Shetty Academy');
+
+    await page.locator('#username').fill('test');
+    await page.locator('#password').fill('test');
+    await page.locator('#signInBtn').click();
+    console.log(await page.locator('[style*="block"]').textContent());
+
+    // const text:string|null = await page.locator('[style*="block"]').textContent();
+    // expect(text).toContain('Incorrect');
+
+    await expect(page.locator('[style*="block"]')).toContainText('Incorrect');
+    // expect(await page.locator('[style*="block"]')).toContainText('Incorrect');
+
 });
 
 test('2nd playwright test', async ({page}) => {
