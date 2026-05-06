@@ -131,4 +131,83 @@ When dealing with locators that detect multiple elements we have:
 .last()
 .nth(x) => x is the index of an array: 0 -> nth
 
+.textContent() vs .inputValue() and Input Fields
+------------------------------------------------
+say we load a dom and we have a text filed and it is empty
+we fill it with chars
+.textContent() => returns empty
+.inputValue() => returns the data we inputed
 
+In the case of a label, the text is already attached to the DOM, meaning <label attr="bla">The Text</label>
+in this case, textContent() will fetch the text
+
+IMPORTANT: Auto-wait
+--------------------
+not all playwright methods have auto-wait, also the nature of the waits can be different
+refer to the following documentation page for this information: https://playwright.dev/docs/actionability
+
+for example, this method: .allTextContents() => fetch all text from multiple results that are fecthed by 1 locator does not wait until all the text is loaded, so we would need to implements waits, the best way would be smart waits:
+
+Smart waits
+-----------
+await page.waitForLoadState('networkidle');
+=> playwright will wait for all the network calls are made to continue, i.e once the network stops registering calls
+based on official playwright docs, this wait can be flaky
+so another way to wait would be to wait on the locator itself: await page.locator('xyz').waitFor();
+however, waitFor() work only when the locator returns a single element
+
+Selectors:
+----------
+.selectOption('theOption')
+
+Radio Buttons and check boxes
+-----------------------------
+we simply locate and .click()
+expect(locator).toBeChecked() => make sure radio button was toBeChecked
+also, a method can be applied to the locator itself and returns a boolean
+expect(locator.isChecked()).toBeTruthy();
+
+For checkboxes, we use the method .uncheck() to uncheck and not click() again
+unchecks do not have assertions specific to them, so we call isChecked() and check that the result is false: toBeFalsy()
+
+Attributes
+----------
+expect(locator).toHaveAttribute(name, value);
+
+Child Windows and New Tabs:
+---------------------------
+
+Playwright page context:
+1) I open a page in a tab, I click on an element that has a link, I am taken to a new page in the same Tab. can I still use the same "page" variable?
+=> YES
+
+2) I open a page in a tab, I click on an element that has a link, I am taken to a new page in a bew Tab. can I still use the same "page" variable?
+=> NO 
+
+We need to capture the new page
+we ALWAYS listen before we do an action that results in a Window or Tab:
+
+This is bad:
+await context.waitForEvent('page'); => we will get stuck here waiting
+await page.locator('locator').click();
+
+instead we use: Promise.all([...]);
+const [newPage] = await Promise.all([
+  context.waitForEvent('page'),
+  page.locator('locator').click()
+]);
+
+it returns an array of promises, that is we capture in "const [newPage, ...]"
+then, we start using "newPage.locator(...)"
+
+NOTE: Promise.all() waits until every promise is fulfilled, or until one rejects.
+More precisely:
+  * ✅ If all promises resolve → Promise.all() resolves
+  * ❌ If any promise rejects → Promise.all() immediately rejects
+  * ⏳ Pending promises keep it pending
+So it does not wait for promises to merely become “not pending”.
+
+There is another one for dealing with "not-pending" state:
+Promise.allSettled() => all settled (resolved/rejected) => never rejects
+
+once we get what we need from the "newPage" and we need to flip back to the original page, we simply use "page" again

@@ -4,7 +4,7 @@ import test, { expect } from "@playwright/test";
 
 // });
 
-test.only('first playwright test', async ({browser}) => {
+test('first playwright test', async ({browser}) => {
     // chrome - plugings, cookies... etc
     // newContext => opens a fresh browser instance
     // we can use this method to inject cookies for example, basically configure the browser as it launches
@@ -32,4 +32,6 @@ test('2nd playwright test', async ({page}) => {
     await page.goto('https://google.com');
     console.log(await page.title());
     await expect(page).toHaveTitle('Google');
+
+    await page.waitForLoadState('networkidle');
 });
