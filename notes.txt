@@ -211,3 +211,65 @@ There is another one for dealing with "not-pending" state:
 Promise.allSettled() => all settled (resolved/rejected) => never rejects
 
 once we get what we need from the "newPage" and we need to flip back to the original page, we simply use "page" again
+
+Locators Capturing multiple elements
+------------------------------------
+Say we are looping of a list of elements to find one:
+for(...) {
+  if(await ...) {
+    await obj.locator(...).click()
+    break; => here we can use break since we are not dealing with wrapped DSL like cypress but with regular TS
+              so we break from the look as we have achieved what we needed
+  }
+}
+
+---- Sudo Class locator: ----
+say we are using the tag name to find an element:
+page.locator('h3'), we can do page.locator('h3:has-text("bla bla")')
+
+.isVisible(); => returns true: checks if element is visible on the page
+then, we would need to check the bool value if it is toBeTruthy
+we can also use: await expect(page.locator('h3:has-text("bla bla")')).toBeVisible()
+
+---- A better way to write the above: ----
+await expect(
+  page.locator('h3').filter({ hasText: 'bla bla' })
+).toBeVisible();
+
+or:
+
+await expect(
+  page.getByRole('heading', { name: 'bla bla' })
+).toBeVisible();
+
+if we want to use the .isVisible() check, we can locate the parent element and use .waitFor()
+
+Autosuggestions when typing in a box
+------------------------------------
+we use .pressSequentially() instead of fill()
+await locator.pressSequentially('World', { delay: 100 }); // Types slower, like a user (Time to wait between key presses in milliseconds. Defaults to 0.)
+
+for loops and awaits
+--------------------
+iterating over a table rquires getting the rows and the row count:
+
+Note: we might need to wait for the table to load 1st: await page.locator("tbody").waitFor();
+
+cost rows = await page.locator("some locator");
+const rowCount = await rows.count(); // better to get the count 1 time before the for loop
+for (let i = 0; i < rowCount; i++) {
+  if (someId.includes(someOtherId)) {
+    await rows.nth(i).locator("someButton").click();
+    break;
+  }
+}
+
+Note: .count() returns a Promise<number>, thus the await is needed
+
+An even more Playwright-ish approach is to use all() if you want to iterate over the locators:
+
+const rows = await page.locator('some locator').all();
+for (const row of rows) {
+  console.log(await row.textContent());
+}
+

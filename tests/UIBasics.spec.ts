@@ -25,7 +25,6 @@ test('first playwright test', async ({browser}) => {
 
     await expect(page.locator('[style*="block"]')).toContainText('Incorrect');
     // expect(await page.locator('[style*="block"]')).toContainText('Incorrect');
-
 });
 
 test('2nd playwright test', async ({page}) => {
