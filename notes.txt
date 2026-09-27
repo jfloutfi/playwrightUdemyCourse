@@ -373,4 +373,41 @@ in case the locator is returning multiple elements, where many are invisible,
 you can use the ":visible" to capture only the visible element
 else you get an error if you try to act on multiple elements like clicking for example
 
+Timeout strategies
+------------------
 
+- Step Level TO: Assertions TO
+await expect(...).toBeVisible({timeout: 10000})
+these timeouts requires using the methods that are chained to expect()
+
+- Global Level TO
+const config = {
+  expect: {
+    timeout: 10000
+  }
+}
+
+- Custom ExpectWithTO Level
+inside a test:
+const slowExpect = expect.configure({timeout: 30000})
+
+- Test Level TO
+// Global to all tests
+const config = {
+  timeout: 10000 => the maximum amount of time a test can take before playwright just fails it
+}
+
+but inside a test function, we can do: test.setTimeout(60000) => will apply to this specific test
+
+- Action and Navigation TO
+const config = {
+  use: {
+    actionTimeout: 10000, => like click()
+    navigationTimeout: 10000
+  }
+}
+
+we can also set it per action: .click({timeout: 10000})
+
+There are timout at "page" object level as well, check them out
+nav TOs apply to stuff like .goto() for example
