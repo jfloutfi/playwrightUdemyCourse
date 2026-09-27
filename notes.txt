@@ -338,3 +338,39 @@ in config, you can set "trace" to "retain-on-failure", that way, only tests that
 
 for every spec, a folder will be created with its report and traces
 
+Navigation and Expect
+---------------------
+.goBack()
+.goForward()
+
+these are the nav buttons of the browser
+
+playwright's expect methos support some advanced checks, so you can import it the same way you import "test"
+you can then use .toBeVisible() method for example
+when you add await before the expect check, the next lines of code will wait till the expect statement returns before continuing
+then you can use .toBeHidden() to check if something changed after you do some action
+
+Popups and Alerts
+-----------------
+these can block the page, they are not web popups, but javascript popups and Alerts
+how do we handle them? we listen to events
+page.on("dialog", dialog => dialog.accept()) or dismiss
+.on(event, listener: fn()), so a function can be executed in .on(...)
+
+you can a listener code line before you click on the element that triggers the popup / alert / dialog to open (you start listening before, which makes sense)
+
+playwright has also a .hover() method built in that you chain to a locator
+
+Frames / i-Frames
+-----------------
+TagName <iframe>
+
+we need to swicth to it using a frame-name or id
+cost framePage = page.frameLocator("id or name"); => new page object
+
+.locator("someString:visible")
+in case the locator is returning multiple elements, where many are invisible,
+you can use the ":visible" to capture only the visible element
+else you get an error if you try to act on multiple elements like clicking for example
+
+
