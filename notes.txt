@@ -273,3 +273,68 @@ for (const row of rows) {
   console.log(await row.textContent());
 }
 
+Playwright's special locators
+-----------------------------
+getByLabel(text) => finds <label> elements that have the text in question <label>text</label>
+=> works best with clickable items, since you can just click the label itself like with checkboxes and radio Buttons, but when is comes to input fields, you will need to get the input element and not the label above it
+
+page.getByRole() to locate by explicit and implicit accessibility attributes.
+page.getByText() to locate by text content.
+page.getByLabel() to locate a form control by associated label's text.
+page.getByPlaceholder() to locate an input by placeholder.
+page.getByAltText() to locate an element, usually image, by its text alternative.
+page.getByTitle() to locate an element by its title attribute.
+page.getByTestId() to locate an element based on its data-testid attribute (other attributes can be configured).
+
+for more info, check this link: https://playwright.dev/docs/locators#quick-guide
+
+The most 2 IMPORTANT methods weould be:
+getByRole() => button, input, label... etc basically, the HTML tagname
+getByTestId() => by default it uses attribute name "data-testid", but it can be configured to used a custom one: https://playwright.dev/docs/locators#set-a-custom-test-id-attribute
+
+getByRole example: getByRole("button") or getByRole("button", {name: 'Submit'}) in case there are multiple buttons
+"name" here is the accessibile name of the element, the text, value, aria-label... etc
+
+Note:
+-----
+.getByText() => searches the entire DOM
+.locator().filter({hasText: }) => searches the elements that were returned by .locator()
+
+we can also keep on chaining after .filter({}), like use .getByRole() for example
+
+If you try to acccess an input field using a label element, it will only work if the they associated with each other:
+
+<label>pass</label>
+<input...></input>
+
+vs
+
+<label>
+pass <input...></input> => associated!
+</label>
+
+Running in Debug mode
+---------------------
+running the playwright command with --debug opens a code inspector next to the browser
+this allows you to run the code, line by line or step by step
+the inspector will actually capture command by command
+so if we have a click chained to a locator, the locator will execute 1st and we will see a red dot on the webpage
+
+the inspector opens a bottom input box that you can use to try stuff, like inputing locators, logs... etc while a being paused on a step
+
+also, the inspector has a pointer tool that gives you the locator when you hover or click on the element you want to locate
+
+PS: to run 1 file and not all the tests, you just need to add the gile location after "test"
+
+codegen
+-------
+instead of "test" to run the tests, if you run playwright with "codegen", as you click and select and perform actions, the code gets generated
+
+codegen also has button that adds assertions, for pro work, these are not enough, but these can help build initial
+
+Reports and traces
+------------------
+in config, you can set "trace" to "retain-on-failure", that way, only tests that fails will have traces, screenshots... etc saved after the test run - a form of memory optimization
+
+for every spec, a folder will be created with its report and traces
+
