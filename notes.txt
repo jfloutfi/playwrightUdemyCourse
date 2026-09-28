@@ -411,3 +411,42 @@ we can also set it per action: .click({timeout: 10000})
 
 There are timout at "page" object level as well, check them out
 nav TOs apply to stuff like .goto() for example
+
+Making API Calls
+----------------
+this is important for setting up sessions
+
+in playwright, we have a beforeAll(() => {}) and beforeEach(() => {})
+
+import { test, expect, request } from "@playwright/test";
+
+const apiContext = await request.newContext()
+apiContext.post(url, headers... etc)
+apiContext.post() / apiContext.get() / apiContext.patch() etc
+
+const response = apiContext.post(url, headers... etc)
+expect(response.ok()).toBeTruthy();
+
+in beforeAll and beforeAll, if they contain awaits, then add async:
+example: beforeAll(async () => {})
+
+const jsonResponse = response.json()
+const token = jsonResponse.token
+
+now, to inject data to local storage: addInitScript() => allows us to run JavaScript
+page.addInitScript(value => {
+  window.localStorage.setItem("token", tokvalueen)
+}, token)
+
+addInitScript => takes 2 args: function and args
+
+You can use API calls to set up things, write data... i.e skip steps when testing something instead of having to go about clicking a navigating in order to just add data to test
+!!! this helps reduce test time by alot !!!
+
+If you put the API calls code in its own utils class, then it would be better to create the API context in the test
+and not in the utils class and pass it in the constructor, that way, the context is bound to the test
+(same idea for browser context for example)
+
+this gives you the flexibility to create as many context as you want, also that way, you can customize the context the way you want in the test itself, then send it, instead of having to pass customization args via the cunstroctor
+
+method wise, remember, if you have awaits, the function need to be "async"
