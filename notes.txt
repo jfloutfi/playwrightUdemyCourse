@@ -681,3 +681,50 @@ await page.removeAllListeners('request');
 
 Remove all listeners:
 await page.removeAllListeners();
+
+Fixtures
+--------
+different concept that cypress
+not just .json files and saved data
+
+when we define a test, we add {browser, page} => these are fixture already created by playwright
+we can create our own custom fixture, for example: authenticated page
+we add them in regular .js or .ts files
+
+we need to tweek the "test" object behavior to handle custom fixtures:
+import * as base from '@playwright/test';
+// we need to export the definition so we can use it
+exports.customTest = base.test.extend(
+  authenticatedPage: async () => { // we can pass params here: async ({browser}, use)
+    // write the code to login
+    // then we add:
+    await use(page) // final statement will be sent back or returned as the value of the fixture
+  }
+)
+
+then the test suite file:
+import authenticatedPage from 'the file where it is defined'
+customTest('fixtures demo', async ({authenticatedPage}) => {
+  authenticatedPage.goto(...)
+})
+
+playwright executes the authenticatedPage fixture 1st before entering the customTest block
+
+we can extend with as many fixtures as we want. 1 thing: async ({...}, use) // "use" arg is mandatory
+
+we can add alot of reusuable code to fixtures, for example: 
+code that calls an API and returns an response or code that intercepts an API can returns a response, with "await use(myApiResponse)" as the final statement
+
+fixtures can also be JS objects:
+testDataForOrder: {
+  someProductName: 'My Product',
+  ...
+}
+
+fixtures support tear down as well:
+...
+await use(...)
+// anything below here will be held off until the test using the fixture ends
+// then the rest of the code here runs
+we can use dispose methods like context.close() for example, to avoid leaks
+
