@@ -728,3 +728,15 @@ await use(...)
 // then the rest of the code here runs
 we can use dispose methods like context.close() for example, to avoid leaks
 
+Visual Testing
+--------------
+done by taking screenshots
+await page.screenshot({path: 'screenshot.png'}) => screenshot of the whole page
+
+screenshots can be taken at locator level:
+await page.locator(...).screenshot({path: 'screenshot.png'}) => partial screenshot: screenshots the element that was located
+
+now to assert on screenshots: expect(await page.screenshot()).toMatchSnapshot('original-screenshot.png')
+notice that in the case, there is not need to save the screenshot anywhere
+if you run the test locally the 1st time, the 'original-screenshot.png' will be taken if it does not exist, then it will be used in the subsequent runs
+
