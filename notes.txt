@@ -435,7 +435,7 @@ const token = jsonResponse.token
 
 now, to inject data to local storage: addInitScript() => allows us to run JavaScript
 page.addInitScript(value => {
-  window.localStorage.setItem("token", tokvalueen)
+  window.localStorage.setItem("token", tokenValue)
 }, token)
 
 addInitScript => takes 2 args: function and args
@@ -450,3 +450,234 @@ and not in the utils class and pass it in the constructor, that way, the context
 this gives you the flexibility to create as many context as you want, also that way, you can customize the context the way you want in the test itself, then send it, instead of having to pass customization args via the cunstroctor
 
 method wise, remember, if you have awaits, the function need to be "async"
+
+Session storage
+---------------
+you do the bellow in beforeAll and same "newContext" a file scop or test suite scope vairable to be used in all the tests
+
+test.beforeAll(async({browser}) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  ... do the login here
+  await context.storageSate({path: 'state.json'}); // default path (repo root) + file will be created and all the local storage and cookies will be stored
+  ...
+  // Now to use it
+  newContext = await browser.newContext({storageSate: 'state.json'});
+  newPage = await newContext.newPage()
+})
+
+Debug npm script
+----------------
+by launching the tests from an npm or pnpm script command (package.json), you can use the "Debug: debug npm script" command (use > from command box) from visual studio to debug your test, including placing breakpoints
+
+tip: increase the timeout to a large number, else at 30 sec, playwright will thing something is wrong and fail the test
+
+This is usefull in case the test is not only web UI, but also has code running (API calls, side helpers... etc)
+
+Trace
+-----
+in config, in use: {...}, we can set trace: on and use it to debug APIs
+we can then upload the file to trace.playwright.dev to check it
+
+Intercept API Calls
+-------------------
+Set this before the call is made, same as cypress, you are basically creating a listener
+
+let body = {data: [], message: "empty list"};
+we use page.route(url, async route => {
+  // const response = await page.request.fetch(route.request()); old way
+  const response = await route.fetch(); // prefered usage
+  route.fulfill({
+    response,
+    JSON.stringify(body)
+  });
+});
+
+the .route(...) method does not only take url, it can take a set of matchers:
+page.route(url: string | RegExp | ((url: URL) => boolean), handler)
+(url: URL): predicate matcher that returns a boolean:
+url =>
+  url.pathname === '/api/content' &&
+  url.searchParams.get('type') === 'movie',
+
+The code above needs to wait for the real response to return 1st, but if we only want to return the mock response, then:
+const body = { data: [], message: 'empty list' };
+await page.route(url, async (route) => {
+  await route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(body),
+  });
+});
+
+we can also replace the "contentType: 'application/json'" and "body: JSON.stringify(body)" with playwright built in option: json
+{
+  ...
+  json: body,
+  ...
+}
+
+once we Intercept, we want to wait for a response before continuing
+we can provide multi match option or just a simple request URL with "*" as a form of regex match
+const response = await page.waitForResponse(
+  response =>
+    response.url().includes('/api/profile') &&
+    response.request().method() === 'POST' &&
+    response.status() === 201
+);
+
+once we have the response, we can access it, for example
+console.log(response.status());
+console.log(response.ok());
+console.log(response.url());
+console.log(response.json());
+... etc
+
+playwright also provide waitForRequest() method
+
+another good practice can be using promise.all(...), for example:
+const [response] = await Promise.all([
+  page.waitForResponse('**/api/content'),
+  page.getByRole('button', { name: 'Load Content' }).click(),
+]);
+this for example can be used to make sure that a response has been recieved, processed and its data rendered on the page before acting.
+
+the array here [response] allows use to capture the promised value of the 1st item in the list inside all(), another example:
+const [response, resultingItem] = await Promise.all([
+  page.waitForResponse('**/api/content'),
+  page.getByRole('button', { name: 'Load Content' }),
+]);
+resultingItem => will be pointing to the the button
+
+
+to modify request data, we can use route.continue(...)
+await page.route('**/api/content', async route => {
+  await route.continue({
+    headers: {
+      ...route.request().headers(),
+      'Authorization': 'Bearer my-token',
+      'X-Custom-Header': 'test-value',
+    },
+  });
+});
+
+await route.continue({
+  url?: string,
+  method?: string,
+  headers?: Record<string, string | undefined>,
+  postData?: string | Buffer | object,
+});
+
+Route Matcher order
+-------------------
+page.route() handlers execute in reverse order of registration (LIFO — Last In, First Out)
+
+await page.route('**/api/**', async route => {
+  console.log('Handler A');
+  await route.continue();
+});
+
+await page.route('**/api/content', async route => {
+  console.log('Handler B');
+  await route.continue();
+});
+
+=> we get in console "Handler B" because the 2nd one was registered last (like cypress)
+
+BUT we also have route.fallback() to execute subsequent handlers:
+await page.route('**/api/**', async route => {
+  console.log('Handler A');
+  await route.continue();
+});
+
+await page.route('**/api/content', async route => {
+  console.log('Handler B');
+  await route.fallback();
+});
+
+the output is 
+Handler B
+Handler A
+
+route.fallback() passes control to the next matching handler after it (i.e the next matching one that was registered before the last matching one)
+
+we can modify both the request and response, in this case, we use route.fetch() + route.fulfill()
+fetch() allows us to also act on the request, .continue() in the other hand can't be used in this scenario bcz once route.continue() executes, Playwright sends the request to the server and relinquishes control of that route. You cannot subsequently call route.fulfill() on it.
+
+It is the same with .fallback()
+await page.route('**/api/**', async route => {
+  const response = await route.fetch();
+  await route.fallback(); // delegates the intercepted request to the next matching handler, or sends it to the network if no handler remains.
+  await route.fulfill({ response }); // ❌ Invalid
+});
+
+By default, page.route() matches every request that satisfies its URL matcher, for as long as the route remains registered.
+However, you can control how many times a route handler executes using the times option.
+
+await page.route(
+  '**/api/content',
+  async route => {
+    await route.fulfill({
+      status: 200,
+      json: { data: [] },
+    });
+  },
+  { times: 3 }
+);
+
+You can also remove a route whenever you want:
+await page.unroute('**/api/content', handler);
+
+This requires importing the Route type: import type { Route } from '@playwright/test';
+
+Playwright: Global API Routing with browserContext.route()
+-----------------------------------------------------------
+Use browserContext.route() to intercept API requests across all pages in a browser context. This is useful for redirecting requests to a different backend in CI/CD while allowing individual tests to mock specific responses.
+
+await context.route(
+  url => url.hostname === 'api.example.com',
+  async route => {
+    const url = new URL(route.request().url());
+
+    if (process.env.CI) {
+      url.hostname = 'api-ci.example.com';
+    }
+
+    await route.continue({ url: url.toString() });
+  }
+);
+
+How to abort network calls + some listener examples
+---------------------------------------------------
+This is useful for testing "Server is Unreachable or Down" cases
+just use: route.abort()
+
+
+Page Event listener - below we register listeners that are always active
+page.on('request', request => console.log(request.url()))
+page.on('response', request => console.log(request.url()))
+
+Register and unregister a listener:
+import type { Request } from '@playwright/test';
+
+// Define the listener
+const requestListener = (request: Request) => {
+  console.log(request.url());
+};
+
+// Register
+page.on('request', requestListener);
+
+// Unregister
+page.off('request', requestListener);
+
+Register a listener that automatically unregisters:
+page.once('request', request => {
+  console.log(request.url());
+});
+
+Remove all listeners for an event:
+await page.removeAllListeners('request');
+
+Remove all listeners:
+await page.removeAllListeners();
