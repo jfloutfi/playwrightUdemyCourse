@@ -694,7 +694,7 @@ we add them in regular .js or .ts files
 we need to tweek the "test" object behavior to handle custom fixtures:
 import * as base from '@playwright/test';
 // we need to export the definition so we can use it
-exports.customTest = base.test.extend(
+export customTest = base.test.extend(
   authenticatedPage: async () => { // we can pass params here: async ({browser}, use)
     // write the code to login
     // then we add:
@@ -739,4 +739,55 @@ await page.locator(...).screenshot({path: 'screenshot.png'}) => partial screensh
 now to assert on screenshots: expect(await page.screenshot()).toMatchSnapshot('original-screenshot.png')
 notice that in the case, there is not need to save the screenshot anywhere
 if you run the test locally the 1st time, the 'original-screenshot.png' will be taken if it does not exist, then it will be used in the subsequent runs
+
+Page Object Model
+-----------------
+the best example for this is actually in their docs: https://playwright.dev/docs/pom
+
+Data Driven tests, Parametrization and Test Data as Fixtures
+------------------------------------------------------------
+In order to get data from JSON files, just import them and JSON.parse() them
+it is better to get the file, stringify it 1st to avoid encoding issue and so on, then parse it
+it is that simple
+
+Parametrization: similar principle to cypress:
+you have an array, you write a for loop outside of the test(...), and the test is included in it
+
+test data as Fixtures: simply extend test like you do for any fixture, then in the .extend(...) method, import the file data
+
+Configs
+-------
+Recent playwright versions added a "copy prompt" button to error when debugging, they generate a prompt for you that you feed to AI or LLMs to get help on the issue instead of having to write the prompt yourself
+
+
+the best source for the configs is in the docs:
+https://playwright.dev/docs/test-configuration
+https://playwright.dev/docs/test-use-options
+
+the import part is that we can define different configs for the same project
+in the config file we add:
+project: [
+  {
+    name: 'safari-run',
+    use: {
+      browserName: 'webkit',
+      headless: true,
+      ... etc
+    }
+  }
+]
+
+and then, from the command line, we can pass: --project=safari-run to run the test with one version of the configuration
+doing it like that is way better than having to create many many config files
+
+if not project is given via the cmd, all projects will run in parallel
+
+viewport => we can set what even dimension we want
+or we can use devices['iPhone 11'] => and playwright will decide on the dimensions 
+
+ignoreHttpsError: true => ignores issues with SSL certification, can be useful during testing
+
+we also have permissions: ['geolocation', '...'] => this allows us to handle popups and requests but the browser to know certain things, like geolocation or other stuff and it makes playwright handle them automatically instead of the popup blocking the UI 
+
+!!! check the many option for videos, traces, screenshots... etc like 'on', 'off', 'retain-on-failure'... etc
 
