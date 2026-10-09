@@ -791,3 +791,124 @@ we also have permissions: ['geolocation', '...'] => this allows us to handle pop
 
 !!! check the many option for videos, traces, screenshots... etc like 'on', 'off', 'retain-on-failure'... etc
 
+TestRuns: Serial vs Parallel
+----------------------------
+default behavior: files run in parallel, tests inside a file run in sequence
+each test file runs with a worker
+by default, playwright start 5 workers, but we can control that, for example, in config, we can set: workers: 1 => 1 files at a time runs (disables parallel mechanism)
+
+!!! IMPORTANT: Tests withing a file can be made to run in parallel
+we use: test.describe.configure({mode: 'parallel'})
+we also have: default and serial modes
+default => tests run in sequence but their failures are independant from each other 
+serial => tests run in sequence, if say test 2 fails, then tests 3, 4, 5... etc are skipped instead of being marked a failed (a form of false positive)
+
+when running in parallel: playwright does not open multiple browsers, it opens 1 and re-uses it, but it keeps the context fresh per worker
+
+------
+so say I have 5 workers, 3 test files, and each has 3 tests, and I am running things in parallel, how will things run?
+------
+Assuming you have 5 workers, 3 spec files, and 3 tests per file, the execution depends on whether you've enabled parallelism within each file.
+Let's compare both scenarios.
+
+Scenario 1: Default Playwright behavior
+Configuration:
+export default defineConfig({
+  workers: 5,
+  fullyParallel: false, // Default
+});
+
+Playwright runs different spec files in parallel, but tests within each file execute sequentially.
+Worker 1          Worker 2          Worker 3
+────────          ────────          ────────
+File A            File B            File C
+
+Test A1           Test B1           Test C1
+   ↓                 ↓                 ↓
+Test A2           Test B2           Test C2
+   ↓                 ↓                 ↓
+Test A3           Test B3           Test C3
+
+
+Worker 4          Worker 5
+────────          ────────
+  Idle              Idle
+
+Result: Only 3 of your 5 workers are utilized because you have only 3 spec files.
+
+Scenario 2: Fully parallel execution
+Configuration:
+export default defineConfig({
+  workers: 5,
+  fullyParallel: true,
+});
+
+Now Playwright can distribute individual tests across all 5 workers, regardless of which file they belong to.
+For example:
+
+Worker 1    Worker 2    Worker 3    Worker 4    Worker 5
+────────    ────────    ────────    ────────    ────────
+Test A1     Test A2     Test A3     Test B1     Test B2
+   ↓           ↓           ↓           ↓           ↓
+Test B3     Test C1     Test C2     Test C3       Done
+   ↓           ↓           ↓           ↓
+ Done        Done        Done        Done
+
+This is just an illustration. The actual scheduling and execution order are not guaranteed.
+The important points are:
+- Up to 5 tests can execute simultaneously.
+- Tests from the same spec file can run on different workers.
+- As soon as a worker becomes available, Playwright can schedule another test.
+- Each test receives its own isolated browser context and page.
+
+Scenario 3: Parallel execution enabled for only one file
+Suppose you have:
+// fileA.spec.ts
+test.describe.configure({ mode: 'parallel' });
+
+But files B and C use the default execution mode.
+Playwright can schedule:
+
+Worker 1    Worker 2    Worker 3    Worker 4    Worker 5
+────────    ────────    ────────    ────────    ────────
+Test A1     Test A2     Test A3     Test B1     Test C1
+                                      ↓           ↓
+                                    Test B2     Test C2
+                                      ↓           ↓
+                                    Test B3     Test C3
+
+Here, tests in File A can execute concurrently, while tests within Files B and C remain sequential.
+
+One important detail: The workers setting specifies the maximum number of concurrent workers, not a guaranteed number of active workers.
+For your Playwright framework, if your tests primarily use mocked API responses and are independent of each other, fullyParallel: true with 5 workers is a reasonable configuration.
+
+Tags
+----
+playwright supports tags natively, for example:
+
+test('should display movies', {
+  tag: ['@smoke', '@functional', '@content'],
+}, async ({ page }) => {
+  // Test implementation
+});
+
+then, from the command line:
+
+# Run smoke tests
+npx playwright test --grep @smoke
+
+# Run regression tests
+npx playwright test --grep @regression
+
+# Run smoke OR functional tests
+npx playwright test --grep "@smoke|@functional"
+
+# Run tests tagged with BOTH smoke AND functional
+npx playwright test --grep "(?=.*@smoke)(?=.*@functional)"
+
+# Exclude smoke tests
+npx playwright test --grep-invert @smoke
+
+Also, describe({...}) blocks can be tagged and not just test({...}) blocks
+
+tags, grep, grep-invert can also be added to config files - we can add them to "projects: [...]", and thus create even more sub configs
